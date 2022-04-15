@@ -15,13 +15,13 @@ def hamming_window(w):
     return j
 
 
-def autocorrelation(sinal, wa, ni, pf):
+def autocorrelation(s, pf):
     r = np.zeros(pf)
 
     for k in range(pf):
         rk = 0
         for n in range(k, pf):
-            rk += sinal[n] * sinal[n - k]
+            rk += s[n] * s[n - k]
         r[k] = rk
 
     energia = r[0]
@@ -29,11 +29,11 @@ def autocorrelation(sinal, wa, ni, pf):
     return r / r[0], energia, r
 
 
-def get_values(window, thu, p, pf, wa, ni, mu, to_plot=False):
-    r, e, non_normalized_r = autocorrelation(window, wa, ni, pf)
+def get_values(window, thu, p, pf, mu, to_plot=False):
+    r, e, non_normalized_r = autocorrelation(window, pf)
 
     if to_plot:
-        plt.title('Autocorrelacao da trama em ni = ' + str(ni))
+        plt.title('Autocorrelacao da trama')
         plt.plot(r)
         plt.grid(True)
         plt.show()
@@ -47,6 +47,7 @@ def get_values(window, thu, p, pf, wa, ni, mu, to_plot=False):
     # Adicionar o pre enfase
     if vibration != 0:
         window = window[2:] - mu * window[1:-1]
+        r, e, non_normalized_r = autocorrelation(window, pf)
 
     if to_plot:
         plt.title("Trama com janela de hamming")
@@ -58,13 +59,13 @@ def get_values(window, thu, p, pf, wa, ni, mu, to_plot=False):
     minv = linalg.inv(m)
     a = np.dot(mr, minv)
 
-    gain = ganho(non_normalized_r, a, p)
+    _gain = gain(non_normalized_r, a, p)
     if to_plot:
-        print("Ganho:", gain)
+        print("Ganho:", _gain)
 
     if to_plot:
-        resposta_impulsiva = signal.lfilter([gain], np.hstack(([1], a)), dirak)
-        r_ri, e_ri, n_r_ri = autocorrelation(resposta_impulsiva, wa, 0, pf)
+        resposta_impulsiva = signal.lfilter([_gain], np.hstack(([1], a)), dirak)
+        r_ri, e_ri, n_r_ri = autocorrelation(resposta_impulsiva, pf)
 
         plt.title("Autocorrelação da resposta impulsiva e da janela")
         plt.plot(r_ri)
@@ -81,20 +82,20 @@ def get_values(window, thu, p, pf, wa, ni, mu, to_plot=False):
         plt.plot(_n_r[:int(len(_n_r) / 2)])
         plt.show()
 
-    return r, non_normalized_r, vibration, e, gain, a
+    return r, non_normalized_r, vibration, e, _gain, a
 
 
-def run_whole_signal(signal, ws, thu, p, pf, wa, mu, to_plot=False):
-    vibrations = np.zeros(int(len(signal) / ws) + 1)
-    energy = np.zeros(int(len(signal) / ws) + 1)
-    gain = np.zeros(int(len(signal) / ws) + 1)
-    ak = np.zeros(int(len(signal) / ws) + 1)
-    ak = ak.tolist()
+def run_whole_signal(_signal, ws, thu, p, pf, wa, mu, to_plot=False):
+    vibrations = np.zeros(int(len(_signal) / ws))
+    energy = np.zeros(int(len(_signal) / ws))
+    gain = np.zeros(int(len(_signal) / ws))
+    ak = np.zeros((int(len(_signal) / ws), 10))
+    # ak = ak.tolist()
 
-    for i in range(0, int((len(signal) - 256) / ws)):
+    for i in range(0, int(len(_signal) / ws)):
         ni = i * ws
-        window = signal[ni:ni + wa]
-        _, _, v, e, g, a = get_values(window, thu, p, pf, wa, ni, mu)
+        window = _signal[ni:ni + wa]
+        _, _, v, e, g, a = get_values(window, thu, p, pf, mu)
 
         vibrations[i] = v
         energy[i] = e
@@ -102,14 +103,14 @@ def run_whole_signal(signal, ws, thu, p, pf, wa, mu, to_plot=False):
         # print(type(a), a.shape, a[0])
         ak[i] = a
 
-    correct_pitch(vibrations)
+    # correct_pitch(vibrations)
 
     if to_plot:
         plt.title("Energia")
         plt.plot(energy)
         plt.show()
 
-        plt.title("Voziamento Corrigido")
+        plt.title("Voziamento")
         plt.plot(vibrations)
         plt.show()
 
@@ -140,13 +141,14 @@ def pitch(r, e, t, threshold, error=0.01, debug=False):
     n_val = np.max(cut_sinal)
 
     if new_val > 20 and n_val > threshold:
-        if debug: print("Novos valores: ", new_val, n_val)
+        if debug:
+            print("Novos valores: ", new_val, n_val)
         val = new_val
 
     return val
 
 
-def ganho(r, a, p):
+def gain(r, a, p):
     G = r[0]
     for k in range(1, p + 1):
         G += a[k - 1] * r[k]
