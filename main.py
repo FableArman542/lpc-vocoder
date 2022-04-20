@@ -30,9 +30,8 @@ sinal = sinal/max(sinal)
 # Teste para uma window
 # window = sinal[ni: ni+wa]
 # get_values(window, thu, p, pf, wa, ni, mu)
-
 vibrations, gain, ak = run_whole_signal(sinal, ws, thu, p, pf, wa, mu, to_plot=False)
-synthesize(vibrations, gain, ak, wa, p, rate, maximo)
+synthesize(vibrations, gain, ak, wa, ws, rate, maximo)
 
 
 

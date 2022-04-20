@@ -7,7 +7,7 @@ import numpy.random as rd
 from scipy.io.wavfile import read, write
 
 
-def calculate_gains(pitch, gain, wa):
+def calculate_gains(pitch, gain, wa, plot=False):
     gains = np.zeros_like(gain)
 
     for i in range(len(pitch)):
@@ -18,84 +18,86 @@ def calculate_gains(pitch, gain, wa):
             # Trama voziada
             gains[i] = gain[i] * np.sqrt(pitch[i] / wa)
 
+    if plot:
+        plt.plot(gains)
+        plt.show()
+
     return gains
 
 
-def synthesize(pitch, gain, ak, wa, p, rate, maximo):
-    # _signal = np.zeros(int(len(pitch) * wa) + 1).tolist()
+def synthesize(pitch, gain, ak, wa, ws, rate, maximo):
+
     gains = calculate_gains(pitch, gain, wa)
 
-    plt.title("Pitch")
-    plt.plot(pitch)
-    plt.show()
-
     # Pulso Glotal
-    glottal_pulse = []
     g_pulses = []
 
     new_signal = np.array([])
 
-    new_wa = wa
+    y = np.array([])
+    zf = np.zeros_like(ak[0])
+
+    gl_last = (2/3) * gains[0]
+
+    new_wa = ws
     for i in range(len(pitch)):
         # Trama nao voziada
         if pitch[i] == 0:
             blank_noise = rd.normal(0, .01, size=new_wa)
+            blank_noise = blank_noise * gains[i]
+
+            yy, zf = signal.lfilter(b=[1.], a=np.concatenate(([1.], ak[i])), x=blank_noise, zi=zf)  # Filtro
+            y = np.append(y, yy)
             new_signal = np.append(new_signal, blank_noise)
-            new_wa = 256
+            new_wa = ws
         else:
             # Trama voziada
             current_pulse = np.array([])
+            n_op = np.ceil(.66 * pitch[i])
             for n in range(int(pitch[i])):
-                n_op = .66 * pitch[i]
                 if 0 <= n < n_op:
                     formula = ((2 * n_op - 1) * n - 3 * (n ** 2)) / (n_op ** 2 - 3 * n_op + 2)
-                    # formula *= gains[i]
-                    glottal_pulse.append(formula)
+                    # formula = formula * gains[i]
                     current_pulse = np.append(current_pulse, formula)
                 elif n_op <= n:
-                    glottal_pulse.append(0)
                     current_pulse = np.append(current_pulse, 0)
 
-            # Adicionar pulsos ate wa
+            # Adicionar pulsos ate ws
             l = int(pitch[i])
-            q = int(np.ceil(256/pitch[i]))
-            delta = (q * l) - 256
+            q = int(np.ceil(new_wa / pitch[i]))
+            delta = (q * l) - new_wa
+            # print(q*l)
 
-            print(new_wa, "quantidade * length", q*l, delta)
-            new_wa = 256 - delta
+            new_wa = ws - delta
             current_pulse = current_pulse.flatten()
+            ajuda = np.asarray([])
+
             for j in range(q):
-                new_signal = np.append(new_signal, current_pulse)
-                new_signal = new_signal.flatten()
+                # new_signal = np.append(new_signal, current_pulse)
+                # new_signal = new_signal.flatten()
+                new_g = gains[i] * (j+1)
+                new_g += gl_last*(q - (j+1))
+                new_g = new_g/(j+1)
+
+                actual_pulse = current_pulse * new_g
+                ajuda = np.append(ajuda, actual_pulse)
+                ajuda = ajuda.flatten()
+
+
+
+
+            yy, zf = signal.lfilter(b=[1.], a=np.concatenate(([1.], ak[i])), x=ajuda, zi=zf)
+            y = np.append(y, yy)
 
             g_pulses.append(current_pulse)
 
-    y = np.zeros(len(ak))
-    zf = np.zeros_like(ak[0])
+    y = y.flatten()
 
-    length = np.arange(0, len(glottal_pulse), wa)
+    # audio = np.int16(new_signal * maximo)
+    # write('ficheiro.wav', rate, audio)
 
-    print("-----LENGTH-----")
-    print("pulso glotal:", len(glottal_pulse))
-    print("ak:", len(ak))
-    print("g linha:", len(gains))
+    audio = np.int16(y * maximo)
+    write('Output.wav', rate, audio)
 
-    # signal.lfilter()
-    # y[i], zf[i] = signal.lfilter(b=[1], a=ak[i], x=pulso_glotal, zi= zf[i])
-
-    plt.title("Ganho")
-    plt.plot(gains)
-    plt.show()
-
-    a = np.int16(new_signal * maximo)
-    write('ficheiro.wav', rate, a)
-
-    plt.title("Sinal")
-    plt.plot(new_signal)
-
-    x_min = 1100
-    x_max = 1400
-    y_min = -1.2
-    y_max = .5
-    plt.axis([x_min, x_max, y_min, y_max])
-    plt.show()
+def decode():
+    return

@@ -100,10 +100,11 @@ def run_whole_signal(_signal, ws, thu, p, pf, wa, mu, to_plot=False):
         vibrations[i] = v
         energy[i] = e
         gain[i] = g
-        # print(type(a), a.shape, a[0])
         ak[i] = a
 
-    # correct_pitch(vibrations)
+    correct_pitch(vibrations)
+
+    quantize(vibrations, gain)
 
     if to_plot:
         plt.title("Energia")
@@ -152,7 +153,7 @@ def gain(r, a, p):
     G = r[0]
     for k in range(1, p + 1):
         G += a[k - 1] * r[k]
-    return G
+    return np.sqrt(G)
 
 
 def correct_pitch(vibrations):
@@ -167,3 +168,18 @@ def correct_pitch(vibrations):
                 vibrations[i + 1] = 0.
         else:
             break
+
+def quantize(pitch, gains):
+    quantized_pitch = quantize_pitch(pitch)
+    quantized_gain = quantize_gain(gains)
+
+def quantize_pitch(pitch):
+    new_pitch = ""
+    for i in range(len(pitch)):
+        new_pitch += "{0:07b}".format(int(pitch[i]-19)) if pitch[i] != 0 else "{0:07b}".format(int(0))
+
+    print(new_pitch)
+    return new_pitch
+
+def quantize_gain(gains):
+    return None
