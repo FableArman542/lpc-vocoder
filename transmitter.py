@@ -29,6 +29,11 @@ def autocorrelation(s, pf):
     return r / r[0], energia, r
 
 
+'''
+    Calcular parametros para uma trama
+'''
+
+
 def get_values(window, thu, p, pf, mu, to_plot=False):
     r, e, non_normalized_r = autocorrelation(window, pf)
 
@@ -85,6 +90,11 @@ def get_values(window, thu, p, pf, mu, to_plot=False):
     return r, non_normalized_r, vibration, e, _gain, a
 
 
+'''
+    Calcular parametros para o sinal inteiro
+'''
+
+
 def run_whole_signal(_signal, ws, thu, p, pf, wa, mu, to_plot=False):
     vibrations = np.zeros(int(len(_signal) / ws))
     energy = np.zeros(int(len(_signal) / ws))
@@ -107,6 +117,7 @@ def run_whole_signal(_signal, ws, thu, p, pf, wa, mu, to_plot=False):
     quantize(vibrations, gain)
 
     if to_plot:
+        print(np.argmax(energy))
         plt.title("Energia")
         plt.plot(energy)
         plt.show()
@@ -169,17 +180,76 @@ def correct_pitch(vibrations):
         else:
             break
 
+
 def quantize(pitch, gains):
     quantized_pitch = quantize_pitch(pitch)
-    quantized_gain = quantize_gain(gains)
+
+    gMax = 1
+    R = 3
+
+    quantized_gain = quantize_gain(gains, gMax, R, plot=False)
+    # gain_binarized = int2bin(quantized_gain, R)
+    # print(gain_binarized)
+
 
 def quantize_pitch(pitch):
     new_pitch = ""
     for i in range(len(pitch)):
-        new_pitch += "{0:07b}".format(int(pitch[i]-19)) if pitch[i] != 0 else "{0:07b}".format(int(0))
-
-    print(new_pitch)
+        new_pitch += "{0:07b}".format(int(pitch[i] - 19)) if pitch[i] != 0 else "{0:07b}".format(int(0))
     return new_pitch
 
-def quantize_gain(gains):
-    return None
+
+# def verify(d, Vd, Vq, lvl):
+#     I = d <= np.array(Vd)
+#     if d > Vd[-1]:
+#         S = Vq[-1]
+#         index = lvl[-1]
+#     else:
+#         S = Vq[I][0]
+#         index = lvl[I][0]
+#     return S, index
+
+def verify (x, t_decisao, t_quantificador,nivel):#x, Iq, Vq)
+    I = (x <=np.array(t_decisao))
+    if(x > t_decisao[-1]):
+        S = t_quantificador[-1]
+        Snivel=nivel[-1]
+    else:
+        S = (t_quantificador[I][0])
+        Snivel=nivel[I][0]
+    return S, Snivel
+
+# def quantiz(Vd, Vq, d, lvl):
+#     MyF = np.vectorize(verify, excluded=['t_decisao', 't_quantificador', 'nivel'])
+#     res, indexes = MyF(d, t_decisao=Vd, t_quantificador=Vq, nivel=lvl)
+#     return res, indexes
+
+def quantiz (t_quantificador, t_decisao, x, nivel):#Iq,Vq,x
+
+    MyF = np.vectorize(verify, excluded=['t_decisao','t_quantificador','nivel'])
+    res,resNivel = MyF(x, t_decisao=t_decisao, t_quantificador=t_quantificador,nivel=nivel)
+    return res,resNivel
+
+
+def quantize_gain(gains, gMax, bits, plot=False):
+    delta = gMax / 2 ** bits
+    # gains = np.arange(0, 1, .01)
+    nivel = np.arange(0, 2 ** (bits))
+
+    # tquantificacao = np.arange(0, gMax - delta, delta)
+    # tdecisao = np.arange(delta / 2, gMax - delta, delta)
+
+    t_quantificador = np.arange(delta / 2, gMax, delta)  # Decisao
+    t_decisao = np.arange(0 + delta, gMax + delta, delta)  # Quantificao
+
+    quantized, i = quantiz(t_quantificador, t_decisao, gains, nivel)
+
+    if plot:
+        plt.plot(gains)
+        plt.plot(quantized)
+        plt.grid(True)
+        plt.show()
+
+
+def int2bin(N, nBits):
+    return np.hstack(list(map(lambda x: list(np.binary_repr(x, nBits)), N))).astype('int')

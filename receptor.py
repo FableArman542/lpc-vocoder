@@ -26,18 +26,12 @@ def calculate_gains(pitch, gain, wa, plot=False):
 
 
 def synthesize(pitch, gain, ak, wa, ws, rate, maximo):
-
     gains = calculate_gains(pitch, gain, wa)
-
-    # Pulso Glotal
-    g_pulses = []
-
-    new_signal = np.array([])
 
     y = np.array([])
     zf = np.zeros_like(ak[0])
 
-    gl_last = (2/3) * gains[0]
+    gl_last = (2 / 3) * gains[0]
 
     new_wa = ws
     for i in range(len(pitch)):
@@ -48,7 +42,6 @@ def synthesize(pitch, gain, ak, wa, ws, rate, maximo):
 
             yy, zf = signal.lfilter(b=[1.], a=np.concatenate(([1.], ak[i])), x=blank_noise, zi=zf)  # Filtro
             y = np.append(y, yy)
-            new_signal = np.append(new_signal, blank_noise)
             new_wa = ws
         else:
             # Trama voziada
@@ -66,6 +59,7 @@ def synthesize(pitch, gain, ak, wa, ws, rate, maximo):
             l = int(pitch[i])
             q = int(np.ceil(new_wa / pitch[i]))
             delta = (q * l) - new_wa
+            print("tamanho", 1 * len(current_pulse))
             # print(q*l)
 
             new_wa = ws - delta
@@ -73,31 +67,22 @@ def synthesize(pitch, gain, ak, wa, ws, rate, maximo):
             ajuda = np.asarray([])
 
             for j in range(q):
-                # new_signal = np.append(new_signal, current_pulse)
-                # new_signal = new_signal.flatten()
-                new_g = gains[i] * (j+1)
-                new_g += gl_last*(q - (j+1))
-                new_g = new_g/(j+1)
+                new_g = gains[i] * (j + 1)
+                new_g += gl_last * (q - (j + 1))
+                new_g = new_g / (j + 1)
 
                 actual_pulse = current_pulse * new_g
                 ajuda = np.append(ajuda, actual_pulse)
                 ajuda = ajuda.flatten()
 
-
-
-
             yy, zf = signal.lfilter(b=[1.], a=np.concatenate(([1.], ak[i])), x=ajuda, zi=zf)
             y = np.append(y, yy)
 
-            g_pulses.append(current_pulse)
-
     y = y.flatten()
-
-    # audio = np.int16(new_signal * maximo)
-    # write('ficheiro.wav', rate, audio)
 
     audio = np.int16(y * maximo)
     write('Output.wav', rate, audio)
+
 
 def decode():
     return
