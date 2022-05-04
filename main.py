@@ -1,8 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.io.wavfile import read
-from scipy.linalg import toeplitz
-from scipy import linalg, signal
 from transmitter import run_whole_signal, get_values
 from receptor import synthesize
 
@@ -33,7 +31,11 @@ sinal = sinal/max(sinal)
 # ni = 160*33
 # window = sinal[ni: ni+wa]
 # get_values(window, thu, p, pf, mu, to_plot=True)
-vibrations, gain, ak = run_whole_signal(sinal, ws, thu, p, pf, wa, mu, to_plot=False)
-# synthesize(vibrations, gain, ak, wa, ws, rate, maximo)
+
+gain_bits = 7
+g_max = 1
+
+t_quantization, ak = run_whole_signal(sinal, ws, thu, p, pf, wa, mu, gain_bits=gain_bits, g_max=g_max, to_plot=False)
+synthesize(t_quantization, gain_bits, ak, wa, ws, rate, maximo)
 
 

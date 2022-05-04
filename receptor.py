@@ -5,6 +5,7 @@ from scipy.linalg import toeplitz
 from scipy import linalg, signal
 import numpy.random as rd
 from scipy.io.wavfile import read, write
+from utils.utils import read_file
 
 
 def calculate_gains(pitch, gain, wa, plot=False):
@@ -25,7 +26,11 @@ def calculate_gains(pitch, gain, wa, plot=False):
     return gains
 
 
-def synthesize(pitch, gain, ak, wa, ws, rate, maximo):
+def synthesize(t_quantization, gain_bits, ak, wa, ws, rate, maximo):
+    pitch = np.array([p + 19 if p != 0 else 0 for p in read_file("pitches", 7)])
+    gains_from_file = read_file("gains", gain_bits)
+    gain = t_quantization[gains_from_file]
+
     gains = calculate_gains(pitch, gain, wa)
 
     y = np.array([])
@@ -59,7 +64,7 @@ def synthesize(pitch, gain, ak, wa, ws, rate, maximo):
             l = int(pitch[i])
             q = int(np.ceil(new_wa / pitch[i]))
             delta = (q * l) - new_wa
-            print("tamanho", 1 * len(current_pulse))
+            # print("tamanho", 1 * len(current_pulse))
             # print(q*l)
 
             new_wa = ws - delta
@@ -81,8 +86,5 @@ def synthesize(pitch, gain, ak, wa, ws, rate, maximo):
     y = y.flatten()
 
     audio = np.int16(y * maximo)
-    write('Output.wav', rate, audio)
+    write('Output_New.wav', rate, audio)
 
-
-def decode():
-    return

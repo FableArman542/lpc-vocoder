@@ -4,6 +4,9 @@ from scipy.io.wavfile import read
 from scipy.linalg import toeplitz
 from scipy import linalg, signal
 import numpy.random as rd
+import struct
+import re
+from utils.utils import int2bin, write_to_file, read_file
 
 dirak = np.zeros(512)
 dirak[0] = 1
@@ -95,7 +98,7 @@ def get_values(window, thu, p, pf, mu, to_plot=False):
 '''
 
 
-def run_whole_signal(_signal, ws, thu, p, pf, wa, mu, to_plot=False):
+def run_whole_signal(_signal, ws, thu, p, pf, wa, mu, gain_bits, g_max, to_plot=False):
     vibrations = np.zeros(int(len(_signal) / ws))
     energy = np.zeros(int(len(_signal) / ws))
     gain = np.zeros(int(len(_signal) / ws))
@@ -114,7 +117,7 @@ def run_whole_signal(_signal, ws, thu, p, pf, wa, mu, to_plot=False):
 
     correct_pitch(vibrations)
 
-    quantize(vibrations, gain)
+    t_quantization = quantize(vibrations, gain, gain_bits, g_max)
 
     if to_plot:
         print(np.argmax(energy))
@@ -130,7 +133,7 @@ def run_whole_signal(_signal, ws, thu, p, pf, wa, mu, to_plot=False):
         plt.plot(gain)
         plt.show()
 
-    return vibrations, gain, ak
+    return t_quantization, ak
 
 
 def pitch(r, e, t, threshold, error=0.01, debug=False):
@@ -181,15 +184,16 @@ def correct_pitch(vibrations):
             break
 
 
-def quantize(pitch, gains):
+def quantize(pitch, gains, gain_bits, g_max):
     quantized_pitch = quantize_pitch(pitch)
 
-    gMax = 1
-    R = 3
+    t_quantization, indexes = quantize_gain(gains, g_max, gain_bits, plot=False)
+    gain_quantization = int2bin(indexes, gain_bits)
 
-    quantized_gain = quantize_gain(gains, gMax, R, plot=False)
-    # gain_binarized = int2bin(quantized_gain, R)
-    # print(gain_binarized)
+    write_to_file(filename="pitches", bits=str(quantized_pitch))
+    write_to_file(filename="gains", bits=''.join(str(g) for g in gain_quantization))
+
+    return t_quantization
 
 
 def quantize_pitch(pitch):
@@ -199,57 +203,37 @@ def quantize_pitch(pitch):
     return new_pitch
 
 
-# def verify(d, Vd, Vq, lvl):
-#     I = d <= np.array(Vd)
-#     if d > Vd[-1]:
-#         S = Vq[-1]
-#         index = lvl[-1]
-#     else:
-#         S = Vq[I][0]
-#         index = lvl[I][0]
-#     return S, index
-
-def verify (x, t_decisao, t_quantificador,nivel):#x, Iq, Vq)
-    I = (x <=np.array(t_decisao))
-    if(x > t_decisao[-1]):
-        S = t_quantificador[-1]
-        Snivel=nivel[-1]
+def verify(d, Vd, Vq, lvl):
+    I = d <= np.array(Vd)
+    if d > Vd[-1]:
+        S = Vq[-1]
+        index = lvl[-1]
     else:
-        S = (t_quantificador[I][0])
-        Snivel=nivel[I][0]
-    return S, Snivel
-
-# def quantiz(Vd, Vq, d, lvl):
-#     MyF = np.vectorize(verify, excluded=['t_decisao', 't_quantificador', 'nivel'])
-#     res, indexes = MyF(d, t_decisao=Vd, t_quantificador=Vq, nivel=lvl)
-#     return res, indexes
-
-def quantiz (t_quantificador, t_decisao, x, nivel):#Iq,Vq,x
-
-    MyF = np.vectorize(verify, excluded=['t_decisao','t_quantificador','nivel'])
-    res,resNivel = MyF(x, t_decisao=t_decisao, t_quantificador=t_quantificador,nivel=nivel)
-    return res,resNivel
+        S = Vq[I][0]
+        index = lvl[I][0]
+    return S, index
 
 
-def quantize_gain(gains, gMax, bits, plot=False):
-    delta = gMax / 2 ** bits
+def quantiz(tquantization, tdecision, x, lvl):  # Iq,Vq,x
+    func = np.vectorize(verify, excluded=['Vd', 'Vq', 'lvl'])
+    res, indexes = func(x, Vd=tdecision, Vq=tquantization, lvl=lvl)
+    return res, indexes
+
+
+def quantize_gain(gains, g_max, bits, plot=False):
+    delta = g_max / 2 ** bits
     # gains = np.arange(0, 1, .01)
-    nivel = np.arange(0, 2 ** (bits))
+    lvl = np.arange(0, 2 ** bits)
 
-    # tquantificacao = np.arange(0, gMax - delta, delta)
-    # tdecisao = np.arange(delta / 2, gMax - delta, delta)
+    tquantization = np.arange(delta / 2, g_max, delta)  # Decisao
+    tdecision = np.arange(0 + delta, g_max + delta, delta)  # Quantificao
 
-    t_quantificador = np.arange(delta / 2, gMax, delta)  # Decisao
-    t_decisao = np.arange(0 + delta, gMax + delta, delta)  # Quantificao
-
-    quantized, i = quantiz(t_quantificador, t_decisao, gains, nivel)
+    quantized, indexes = quantiz(tquantization, tdecision, gains, lvl)
 
     if plot:
         plt.plot(gains)
-        plt.plot(quantized)
+        plt.plot(tquantization[indexes])
         plt.grid(True)
         plt.show()
 
-
-def int2bin(N, nBits):
-    return np.hstack(list(map(lambda x: list(np.binary_repr(x, nBits)), N))).astype('int')
+    return tquantization, indexes
