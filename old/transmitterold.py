@@ -120,7 +120,7 @@ def run_whole_signal(_signal, ws, thu, p, pf, wa, mu, gain_bits, g_max, to_plot=
 
     correct_pitch(vibrations)
 
-    t_quantization = quantize(vibrations, gain, gain_bits, g_max, ak)
+    t_quantization, ak_, auxs = quantize(vibrations, gain, gain_bits, g_max, ak)
 
     if to_plot:
         print(np.argmax(energy))
@@ -136,7 +136,7 @@ def run_whole_signal(_signal, ws, thu, p, pf, wa, mu, gain_bits, g_max, to_plot=
         plt.plot(gain)
         plt.show()
 
-    return t_quantization
+    return t_quantization, ak_, auxs
 
 
 def pitch(r, e, t, threshold, error=0.01, debug=False):
@@ -196,11 +196,11 @@ def quantize(pitch, gains, gain_bits, g_max, ak):
     quantized_ak, auxs = quantize_ak(ak)
 
     ak_str = ''.join(str(a) for a in quantized_ak)
-    write_to_file(filename="disk/aks", bits=ak_str)
-    write_to_file(filename="disk/pitches", bits=str(quantized_pitch))
-    write_to_file(filename="disk/gains", bits=''.join(str(g) for g in gain_quantization))
+    write_to_file(filename="aks", bits=ak_str)
+    write_to_file(filename="pitches", bits=str(quantized_pitch))
+    write_to_file(filename="gains", bits=''.join(str(g) for g in gain_quantization))
 
-    return t_quantization
+    return t_quantization, quantized_ak, auxs
 
 
 def quantize_ak(ak):
@@ -208,7 +208,7 @@ def quantize_ak(ak):
     auxs = []
     for i in range(len(ak)):
         a = np.concatenate(([1.], ak[i]))
-        aux = lpc_to_lsf(a) * 0.5 / np.pi
+        aux = lpc_to_lsf(a) #* 0.5 / np.pi
         auxs.append(aux)
         bits_lsp, lspq = codeLSP(aux)
         quantized_ak.append(''.join(bits_lsp))

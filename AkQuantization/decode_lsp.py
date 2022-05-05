@@ -20,7 +20,6 @@ vq10=[0.3987 ,   0.4088  ,  0.4188  ,  0.4275 ,   0.4363 ,   0.4487  ,  0.4637 ,
 def decodeLSP(bits):
     lspq=[]
     index=int(bits[0:3],2)
-    print(index)
     lspq.append(vq1[index])
     index=int(bits[3:7],2)
     lspq.append(vq2[index])

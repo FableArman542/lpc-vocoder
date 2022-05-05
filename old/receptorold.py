@@ -26,12 +26,17 @@ def calculate_gains(pitch, gain, wa, plot=False):
     return gains
 
 
-def synthesize(t_quantization, gain_bits, wa, ws, rate):
-    pitch = np.array([p + 19 if p != 0 else 0 for p in read_file("disk/pitches", 7)])
-    gains_from_file = read_file("disk/gains", gain_bits)
+def synthesize(t_quantization, gain_bits, wa, ws, rate, ak, auxs):
+    pitch = np.array([p + 19 if p != 0 else 0 for p in read_file("pitches", 7)])
+    gains_from_file = read_file("gains", gain_bits)
     gain = t_quantization[gains_from_file]
+    # plt.plot(gain)
+    # plt.show()
 
-    ak = read_ak_from_file("disk/aks")
+
+    # ak = read_ak_from_file("aks")
+    ak = decode_ak(ak)
+    # ak = ajudaaaa(auxs)
     gains = calculate_gains(pitch, gain, wa)
 
     y = np.array([])
@@ -87,5 +92,5 @@ def synthesize(t_quantization, gain_bits, wa, ws, rate):
     y = y.flatten()
     # plt.plot(y)
     # plt.show()
-    audio = np.int16(y * (2**15))
-    write('output/Quantized-Output.wav', rate, audio)
+    audio = np.int16(y * 2**15)
+    write('../NEW.wav', rate, audio)

@@ -42,23 +42,31 @@ def quantize(signal, partitions, codebook):
 
 
 def codeLSP(lsp):
+    """
+    Recebe uma trama de lsp  
+
+    Returns
+    =======
+    Array de strings;
+    
+    """
     bitsLSP=[]
-    lspq=np.arange(len(lsp))
-    print(lspq)
+    lspq = np.arange(len(lsp)).astype(np.float)
+    #print(lspq)
     index,lspq[0] = quantize(lsp[0], vd1,vq1)
     binary=format(index,'03b')
     bitsLSP.append(binary)
     
     index,lspq[1]=quantize(lsp[1], vd2, vq2)
     while(lspq[1]<lspq[0]):
-        index=index+1;
+        index=index+1
         lspq[1]=vq2[index]
     binary=format(index,'04b')    
     bitsLSP.append(binary)
     
     index,lspq[2]=quantize(lsp[2], vd3, vq3)
     while(lspq[2]<lspq[1]):
-        index=index+1;
+        index=index+1
         lspq[2]=vq3[index]
     binary=format(index,'04b')    
     bitsLSP.append(binary)
@@ -66,7 +74,7 @@ def codeLSP(lsp):
     
     index,lspq[3]=quantize(lsp[3], vd4, vq4)
     while(lspq[3]<lspq[2]):
-        index=index+1;
+        index=index+1
         lspq[3]=vq4[index]
     binary=format(index,'04b')    
     bitsLSP.append(binary)
@@ -74,14 +82,14 @@ def codeLSP(lsp):
     
     index,lspq[4]=quantize(lsp[4], vd5, vq5)
     while(lspq[4]<lspq[3]):
-        index=index+1;
+        index=index+1
         lspq[4]=vq5[index]
     binary=format(index,'04b')    
     bitsLSP.append(binary)
     
     index,lspq[5]=quantize(lsp[5], vd6, vq6)
     while(lspq[5]<lspq[4]):
-        index=index+1;
+        index=index+1
         lspq[5]=vq6[index]
     binary=format(index,'03b')    
     bitsLSP.append(binary)
@@ -97,7 +105,7 @@ def codeLSP(lsp):
     
     index,lspq[7]=quantize(lsp[7], vd8, vq8)
     while(lspq[7]<lspq[6]):
-        index=index+1;
+        index=index+1
         lspq[7]=vq8[index]
     binary=format(index,'03b')    
     bitsLSP.append(binary)
@@ -105,19 +113,19 @@ def codeLSP(lsp):
     
     index,lspq[8]=quantize(lsp[8], vd9, vq9)
     while(lspq[8]<lspq[7]):
-        index=index+1;
+        index=index+1
         lspq[8]=vq9[index]
     binary=format(index,'03b')    
     bitsLSP.append(binary)
     
     index,lspq[9]=quantize(lsp[9], vd10, vq10)
     while(lspq[9]<lspq[8]):
-        index=index+1;
+        index=index+1
         lspq[9]=vq10[index]
     binary=format(index,'03b')    
     bitsLSP.append(binary)
     
-    return bitsLSP,lspq
+    return bitsLSP, lspq
     
     
     
